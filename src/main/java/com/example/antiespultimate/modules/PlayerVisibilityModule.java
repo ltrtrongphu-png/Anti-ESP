@@ -65,7 +65,14 @@ public class PlayerVisibilityModule {
             for (Player target : players) {
                 if (viewer == target) continue;
                 if (target.hasPermission("antiespu.bypass")) continue;
-                evaluatePair(viewer, target);
+                try {
+                    evaluatePair(viewer, target);
+                } catch (Exception ex) {
+                    // One bad pair (e.g. an edge case we haven't seen) must never
+                    // stop the rest of this tick's pairs from being evaluated,
+                    // and must never spam the console every 2 ticks.
+                    plugin.debug("evaluatePair failed for " + viewer.getName() + "/" + target.getName() + ": " + ex);
+                }
             }
         }
     }
@@ -80,6 +87,15 @@ public class PlayerVisibilityModule {
 
         Location viewerEye = viewer.getEyeLocation();
         Location targetEye = target.getEyeLocation();
+
+        // Different worlds (e.g. one in the_nether, one in world) can never see
+        // each other -- and Bukkit throws IllegalArgumentException if you try
+        // to measure distance across worlds, so this check has to come first.
+        if (!viewerEye.getWorld().equals(targetEye.getWorld())) {
+            setHidden(viewer, target, key, false);
+            return;
+        }
+
         double distance = viewerEye.distance(targetEye);
 
         if (distance > maxDistance || distance <= minDistance) {
