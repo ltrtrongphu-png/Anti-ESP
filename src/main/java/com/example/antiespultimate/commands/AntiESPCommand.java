@@ -41,8 +41,14 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("Debug: " + plugin.isDebug());
                 sender.sendMessage("Block obfuscation: " + plugin.getConfig().getBoolean("block-obfuscation.enabled"));
                 if (plugin.getBlockObfuscationModule() != null) {
-                    sender.sendMessage("  MAP_CHUNK packets processed: " + plugin.getBlockObfuscationModule().getPacketsProcessed()
-                            + ChatColor.GRAY + "  (0 here means the listener is never firing -- move to an unloaded area and check again)");
+                    var mod = plugin.getBlockObfuscationModule();
+                    sender.sendMessage("  MAP_CHUNK packets processed: " + mod.getPacketsProcessed());
+                    sender.sendMessage("  Block-entities scanned: " + mod.getBlockEntitiesScanned()
+                            + "  |  stripped: " + mod.getBlockEntitiesStripped()
+                            + "  |  NBT read failures: " + mod.getNbtReadFailures());
+                    sender.sendMessage(ChatColor.GRAY + "  (packets=0 -> listener never fires. scanned=0 -> getListNbtModifier()"
+                            + " returns no block-entity data on this version. scanned>0 but stripped=0 -> id field name mismatch,"
+                            + " check debug log for 'Block-entity NBT sample'.)");
                 } else {
                     sender.sendMessage(ChatColor.RED + "  Module is not running (check earlier console errors).");
                 }
