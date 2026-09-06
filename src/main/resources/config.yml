@@ -1,0 +1,72 @@
+debug: false
+
+# --- Block obfuscation (defeats StorageESP / OreESP / cave-finder texture packs) ---
+block-obfuscation:
+  enabled: true
+  # Block sent to the client instead of the real one, until it's legitimately revealed.
+  fake-block: STONE
+  # Anything in this list gets hidden from the raw chunk packet.
+  obfuscated-blocks:
+    # ores
+    - COAL_ORE
+    - DEEPSLATE_COAL_ORE
+    - IRON_ORE
+    - DEEPSLATE_IRON_ORE
+    - GOLD_ORE
+    - DEEPSLATE_GOLD_ORE
+    - REDSTONE_ORE
+    - DEEPSLATE_REDSTONE_ORE
+    - LAPIS_ORE
+    - DEEPSLATE_LAPIS_ORE
+    - DIAMOND_ORE
+    - DEEPSLATE_DIAMOND_ORE
+    - EMERALD_ORE
+    - DEEPSLATE_EMERALD_ORE
+    - COPPER_ORE
+    - DEEPSLATE_COPPER_ORE
+    - NETHER_GOLD_ORE
+    - NETHER_QUARTZ_ORE
+    - ANCIENT_DEBRIS
+    # containers (this is the StorageESP-relevant part)
+    - CHEST
+    - TRAPPED_CHEST
+    - ENDER_CHEST
+    - BARREL
+    - SHULKER_BOX
+    - FURNACE
+    - BLAST_FURNACE
+    - SMOKER
+    - BREWING_STAND
+    - DISPENSER
+    - DROPPER
+    - HOPPER
+  # Real block is revealed once a player gets this close, OR has a genuine
+  # unobstructed line of sight to it (reuses the same raycast logic as
+  # player-visibility below). Re-obfuscation on walking away is intentionally
+  # NOT done for containers you've already opened, to avoid desync bugs;
+  # it IS done for ores you haven't mined, each time chunks resend.
+  reveal-distance: 6.0
+  # How often (ticks) to scan nearby players and reveal blocks they've earned
+  # legitimate access to. Lower = more responsive, more CPU.
+  reveal-check-interval: 10
+
+# --- Player visibility (defeats seeing players through walls) ---
+player-visibility:
+  enabled: true
+  check-interval: 2
+  max-distance: 64.0
+  min-distance: 5.0
+  blocking-threshold: 0.7
+  team-exemption: true
+
+# --- View distance clamp (reduces how far FreeCam has anything to look at) ---
+# This does NOT detect or block FreeCam itself -- nothing server-side can.
+# It only limits how much terrain/entity data is ever sent to a client in the
+# first place, which caps how far a freecam (or any client) can scout.
+view-distance-limit:
+  enabled: true
+  max-sent-view-distance: 6
+
+messages:
+  reloaded: "&aAntiESPUltimate config reloaded."
+  no-permission: "&cYou don't have permission."

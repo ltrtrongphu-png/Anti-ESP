@@ -1,0 +1,22 @@
+name: AntiESPUltimate
+version: '1.0.0'
+main: com.example.antiespultimate.AntiESPUltimate
+api-version: '1.21'
+depend: [ProtocolLib]
+author: you
+description: Obfuscates ores/containers, hides players blocked by line-of-sight, and clamps per-player view distance.
+
+commands:
+  antiespu:
+    description: AntiESPUltimate admin command
+    usage: /antiespu <reload|status>
+    permission: antiespu.admin
+    aliases: [aeu]
+
+permissions:
+  antiespu.admin:
+    description: Manage AntiESPUltimate
+    default: op
+  antiespu.bypass:
+    description: Exempt this player from being hidden/obfuscated for others
+    default: false
