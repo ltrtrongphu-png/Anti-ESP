@@ -99,27 +99,43 @@ public class BlockObfuscationModule extends PacketAdapter {
 
         PacketContainer packet = event.getPacket();
         try {
-            // Section-by-section block data arrays, same structure Bukkit/ProtocolLib
-            // exposes for MAP_CHUNK: one WrappedBlockData[] per non-empty section.
-            WrappedBlockData[][] sections = (WrappedBlockData[][])
-                    (Object[]) packet.getBlockDataArrays().readSafely(0);
-            if (sections == null) return;
-
-            for (WrappedBlockData[] section : sections) {
-                if (section == null) continue;
-                for (int i = 0; i < section.length; i++) {
-                    WrappedBlockData bd = section[i];
-                    if (bd == null) continue;
-                    Material mat = bd.getType();
-                    if (obfuscatedMaterials.contains(mat)) {
-                        section[i] = fakeBlockData;
-                    }
-                }
-            }
-            packet.getBlockDataArrays().writeSafely(0, (Object[]) sections);
+            // We deliberately don't assume whether ProtocolLib hands back a
+            // WrappedBlockData[] or WrappedBlockData[][] here -- that shape
+            // isn't guaranteed stable across ProtocolLib/Minecraft versions,
+            // and getting it wrong is a compile error, not just a bug. Walking
+            // it via reflection works no matter which shape it turns out to be.
+            Object raw = packet.getBlockDataArrays().readSafely(0);
+            if (raw == null) return;
+            mutateBlockDataTree(raw);
+            writeGeneric(packet.getBlockDataArrays(), 0, raw);
         } catch (Exception ex) {
             plugin.debug("BlockObfuscationModule failed to rewrite chunk packet: " + ex);
         }
+    }
+
+    /** Recursively walks an array-of-arrays (any depth) looking for WrappedBlockData
+     *  entries to obfuscate in place. */
+    private void mutateBlockDataTree(Object node) {
+        if (node == null || !node.getClass().isArray()) return;
+        int len = java.lang.reflect.Array.getLength(node);
+        for (int i = 0; i < len; i++) {
+            Object elem = java.lang.reflect.Array.get(node, i);
+            if (elem instanceof WrappedBlockData) {
+                WrappedBlockData bd = (WrappedBlockData) elem;
+                if (obfuscatedMaterials.contains(bd.getType())) {
+                    java.lang.reflect.Array.set(node, i, fakeBlockData);
+                }
+            } else if (elem != null && elem.getClass().isArray()) {
+                mutateBlockDataTree(elem);
+            }
+        }
+    }
+
+    /** Writes an Object we only know the runtime shape of back into a generically-typed
+     *  StructureModifier<T>, whatever T actually is. */
+    @SuppressWarnings("unchecked")
+    private static <T> void writeGeneric(com.comphenix.protocol.reflect.StructureModifier<T> modifier, int index, Object value) {
+        modifier.writeSafely(index, (T) value);
     }
 
     /**
