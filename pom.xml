@@ -14,8 +14,8 @@
 
     <repositories>
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>papermc-repo</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
             <id>dmulloy2-repo</id>
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>com.comphenix.protocol</groupId>
             <artifactId>ProtocolLib</artifactId>
-            <version>5.3.0</version>
+            <version>5.4.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
