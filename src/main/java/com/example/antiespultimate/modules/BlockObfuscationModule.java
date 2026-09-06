@@ -6,8 +6,12 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.reflect.StructureModifier;
 import com.comphenix.protocol.wrappers.BlockPosition;
 import com.comphenix.protocol.wrappers.WrappedBlockData;
+import com.comphenix.protocol.wrappers.nbt.NbtBase;
+import com.comphenix.protocol.wrappers.nbt.NbtCompound;
+import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 import com.example.antiespultimate.AntiESPUltimate;
 import com.example.antiespultimate.util.RaycastUtils;
 import org.bukkit.Bukkit;
@@ -18,7 +22,9 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -108,6 +114,15 @@ public class BlockObfuscationModule extends PacketAdapter {
             if (raw == null) return;
             mutateBlockDataTree(raw);
             writeGeneric(packet.getBlockDataArrays(), 0, raw);
+
+            // The block-state array above is NOT the whole story: MAP_CHUNK
+            // also carries a separate list of block-entity NBT compounds
+            // (one entry per chest/furnace/etc in the chunk, with its own x/y/z
+            // and a "minecraft:chest"-style id). Many ESP hacks read straight
+            // from this list instead of the block palette, so it has to be
+            // filtered too or the fake-STONE trick above accomplishes nothing
+            // for containers specifically.
+            stripObfuscatedBlockEntities(packet);
         } catch (Exception ex) {
             plugin.debug("BlockObfuscationModule failed to rewrite chunk packet: " + ex);
         }
@@ -136,6 +151,68 @@ public class BlockObfuscationModule extends PacketAdapter {
     @SuppressWarnings("unchecked")
     private static <T> void writeGeneric(com.comphenix.protocol.reflect.StructureModifier<T> modifier, int index, Object value) {
         modifier.writeSafely(index, (T) value);
+    }
+
+    private boolean loggedNbtKeysOnce = false;
+
+    /**
+     * Removes any block-entity NBT compound (chest/furnace/barrel/etc) whose
+     * "id" matches an obfuscated material from the packet's NBT list, so ESP
+     * tools reading this list directly (rather than the block palette) see
+     * nothing there either.
+     *
+     * ProtocolLib abstracts this as one List<NbtBase<?>> per chunk section via
+     * getListNbtModifier(); each compound is expected to carry "x"/"y"/"z" and
+     * "id" fields based on ProtocolLib's own examples. If your build's NBT
+     * layout differs (field names do shift between MC versions occasionally),
+     * turn on debug: true -- the first mismatch will log the actual keys seen
+     * so the field names below can be corrected.
+     */
+    private void stripObfuscatedBlockEntities(PacketContainer packet) {
+        try {
+            StructureModifier<List<NbtBase<?>>> listMod = packet.getListNbtModifier();
+            int size = listMod.size();
+            for (int sectionIndex = 0; sectionIndex < size; sectionIndex++) {
+                List<NbtBase<?>> list = listMod.readSafely(sectionIndex);
+                if (list == null || list.isEmpty()) continue;
+
+                List<NbtBase<?>> filtered = new ArrayList<>(list.size());
+                for (NbtBase<?> base : list) {
+                    boolean keep = true;
+                    try {
+                        NbtCompound nbt = NbtFactory.asCompound(base);
+                        String id = nbt.getString("id");
+                        if (id != null) {
+                            Material mat = blockEntityIdToMaterial(id);
+                            if (mat != null && obfuscatedMaterials.contains(mat)) {
+                                keep = false;
+                            }
+                        }
+                    } catch (Exception inner) {
+                        if (!loggedNbtKeysOnce) {
+                            loggedNbtKeysOnce = true;
+                            plugin.debug("Unexpected block-entity NBT shape, got: " + base + " (" + inner + ")");
+                        }
+                    }
+                    if (keep) filtered.add(base);
+                }
+                if (filtered.size() != list.size()) {
+                    listMod.writeSafely(sectionIndex, filtered);
+                }
+            }
+        } catch (Exception ex) {
+            plugin.debug("stripObfuscatedBlockEntities failed: " + ex);
+        }
+    }
+
+    /** "minecraft:chest" -> Material.CHEST, best-effort. */
+    private Material blockEntityIdToMaterial(String id) {
+        String key = id.replace("minecraft:", "").trim().toUpperCase();
+        try {
+            return Material.valueOf(key);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     /**
