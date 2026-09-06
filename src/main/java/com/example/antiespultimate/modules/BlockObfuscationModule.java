@@ -68,9 +68,24 @@ public class BlockObfuscationModule extends PacketAdapter {
     // can tell instantly whether the packet listener is firing at all, without
     // needing to catch a debug line in the console at the right moment.
     private final java.util.concurrent.atomic.AtomicLong packetsProcessed = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong blockEntitiesScanned = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong blockEntitiesStripped = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong nbtReadFailures = new java.util.concurrent.atomic.AtomicLong();
 
     public long getPacketsProcessed() {
         return packetsProcessed.get();
+    }
+
+    public long getBlockEntitiesScanned() {
+        return blockEntitiesScanned.get();
+    }
+
+    public long getBlockEntitiesStripped() {
+        return blockEntitiesStripped.get();
+    }
+
+    public long getNbtReadFailures() {
+        return nbtReadFailures.get();
     }
 
     public BlockObfuscationModule(AntiESPUltimate plugin, ProtocolManager protocolManager) {
@@ -209,6 +224,7 @@ public class BlockObfuscationModule extends PacketAdapter {
 
                 List<NbtBase<?>> filtered = new ArrayList<>(list.size());
                 for (NbtBase<?> base : list) {
+                    blockEntitiesScanned.incrementAndGet();
                     boolean keep = true;
                     try {
                         NbtCompound nbt = NbtFactory.asCompound(base);
@@ -224,8 +240,10 @@ public class BlockObfuscationModule extends PacketAdapter {
                             }
                         }
                     } catch (Exception inner) {
+                        nbtReadFailures.incrementAndGet();
                         plugin.debug("Failed to read block-entity NBT entry: " + inner);
                     }
+                    if (!keep) blockEntitiesStripped.incrementAndGet();
                     if (keep) filtered.add(base);
                 }
                 if (filtered.size() != list.size()) {
