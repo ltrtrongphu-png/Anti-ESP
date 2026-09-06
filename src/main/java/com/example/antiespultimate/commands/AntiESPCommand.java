@@ -38,7 +38,14 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                 return true;
             case "status":
                 sender.sendMessage(ChatColor.GOLD + "=== AntiESPUltimate ===");
+                sender.sendMessage("Debug: " + plugin.isDebug());
                 sender.sendMessage("Block obfuscation: " + plugin.getConfig().getBoolean("block-obfuscation.enabled"));
+                if (plugin.getBlockObfuscationModule() != null) {
+                    sender.sendMessage("  MAP_CHUNK packets processed: " + plugin.getBlockObfuscationModule().getPacketsProcessed()
+                            + ChatColor.GRAY + "  (0 here means the listener is never firing -- move to an unloaded area and check again)");
+                } else {
+                    sender.sendMessage(ChatColor.RED + "  Module is not running (check earlier console errors).");
+                }
                 sender.sendMessage("Player visibility: " + plugin.getConfig().getBoolean("player-visibility.enabled"));
                 sender.sendMessage("View distance limit: " + plugin.getConfig().getBoolean("view-distance-limit.enabled")
                         + " (max " + plugin.getConfig().getInt("view-distance-limit.max-sent-view-distance") + ")");
