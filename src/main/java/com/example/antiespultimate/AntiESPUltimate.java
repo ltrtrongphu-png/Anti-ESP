@@ -72,4 +72,8 @@ public class AntiESPUltimate extends JavaPlugin {
     public void debug(String msg) {
         if (isDebug()) getLogger().info("[debug] " + msg);
     }
+
+    public BlockObfuscationModule getBlockObfuscationModule() {
+        return blockObfuscationModule;
+    }
 }
