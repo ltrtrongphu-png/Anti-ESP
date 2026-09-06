@@ -33,6 +33,22 @@ block-obfuscation:
     - ENDER_CHEST
     - BARREL
     - SHULKER_BOX
+    - WHITE_SHULKER_BOX
+    - ORANGE_SHULKER_BOX
+    - MAGENTA_SHULKER_BOX
+    - LIGHT_BLUE_SHULKER_BOX
+    - YELLOW_SHULKER_BOX
+    - LIME_SHULKER_BOX
+    - PINK_SHULKER_BOX
+    - GRAY_SHULKER_BOX
+    - LIGHT_GRAY_SHULKER_BOX
+    - CYAN_SHULKER_BOX
+    - PURPLE_SHULKER_BOX
+    - BLUE_SHULKER_BOX
+    - BROWN_SHULKER_BOX
+    - GREEN_SHULKER_BOX
+    - RED_SHULKER_BOX
+    - BLACK_SHULKER_BOX
     - FURNACE
     - BLAST_FURNACE
     - SMOKER
@@ -45,10 +61,12 @@ block-obfuscation:
   # player-visibility below). Re-obfuscation on walking away is intentionally
   # NOT done for containers you've already opened, to avoid desync bugs;
   # it IS done for ores you haven't mined, each time chunks resend.
-  reveal-distance: 6.0
+  reveal-distance: 5.0
   # How often (ticks) to scan nearby players and reveal blocks they've earned
-  # legitimate access to. Lower = more responsive, more CPU.
-  reveal-check-interval: 10
+  # legitimate access to. Lower = more responsive, more CPU. Your server runs
+  # 60+ plugins, so this is set a bit lighter (15 ticks = ~0.75s) than the
+  # bare-minimum default to leave CPU headroom.
+  reveal-check-interval: 15
 
 # --- Player visibility (defeats seeing players through walls) ---
 player-visibility:
@@ -57,6 +75,12 @@ player-visibility:
   max-distance: 64.0
   min-distance: 5.0
   blocking-threshold: 0.7
+  # NOTE: this checks Bukkit's native Scoreboard Team API. Many standalone
+  # team plugins (including UltimateTeams, which this server runs) keep their
+  # own team data and do NOT register into Bukkit's scoreboard teams -- if
+  # that's the case here, this exemption will silently do nothing and
+  # teammates will still get hidden from each other behind walls. Test with
+  # two teammates before trusting this.
   team-exemption: true
 
 # --- View distance clamp (reduces how far FreeCam has anything to look at) ---
@@ -65,7 +89,9 @@ player-visibility:
 # first place, which caps how far a freecam (or any client) can scout.
 view-distance-limit:
   enabled: true
-  max-sent-view-distance: 6
+  # 8 chunks keeps normal play comfortable while still capping how far any
+  # client (freecam included) can ever see, versus vanilla defaults of 10+.
+  max-sent-view-distance: 8
 
 messages:
   reloaded: "&aAntiESPUltimate config reloaded."
