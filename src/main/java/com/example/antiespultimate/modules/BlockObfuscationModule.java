@@ -172,16 +172,40 @@ public class BlockObfuscationModule extends PacketAdapter {
         try {
             StructureModifier<List<NbtBase<?>>> listMod = packet.getListNbtModifier();
             int size = listMod.size();
+
+            if (plugin.isDebug() && !loggedNbtKeysOnce) {
+                plugin.debug("getListNbtModifier() reports " + size + " section(s) in this MAP_CHUNK packet.");
+            }
+
             for (int sectionIndex = 0; sectionIndex < size; sectionIndex++) {
                 List<NbtBase<?>> list = listMod.readSafely(sectionIndex);
                 if (list == null || list.isEmpty()) continue;
+
+                // Diagnostic: dump exactly what's in the FIRST non-empty block-entity
+                // list we ever see, once, so we can see ground truth of the NBT shape
+                // instead of guessing at field names. Remove once confirmed working.
+                if (plugin.isDebug() && !loggedNbtKeysOnce) {
+                    loggedNbtKeysOnce = true;
+                    for (NbtBase<?> base : list) {
+                        try {
+                            NbtCompound nbt = NbtFactory.asCompound(base);
+                            plugin.debug("Block-entity NBT sample -- keys=" + nbt.getKeys() + " raw=" + nbt);
+                        } catch (Exception dumpEx) {
+                            plugin.debug("Block-entity NBT sample (not a compound) -- raw=" + base + " class=" + (base == null ? "null" : base.getClass()));
+                        }
+                    }
+                }
 
                 List<NbtBase<?>> filtered = new ArrayList<>(list.size());
                 for (NbtBase<?> base : list) {
                     boolean keep = true;
                     try {
                         NbtCompound nbt = NbtFactory.asCompound(base);
-                        String id = nbt.getString("id");
+                        String id = firstNonNull(
+                                tryGetString(nbt, "id"),
+                                tryGetString(nbt, "type"),
+                                tryGetString(nbt, "Id")
+                        );
                         if (id != null) {
                             Material mat = blockEntityIdToMaterial(id);
                             if (mat != null && obfuscatedMaterials.contains(mat)) {
@@ -189,20 +213,32 @@ public class BlockObfuscationModule extends PacketAdapter {
                             }
                         }
                     } catch (Exception inner) {
-                        if (!loggedNbtKeysOnce) {
-                            loggedNbtKeysOnce = true;
-                            plugin.debug("Unexpected block-entity NBT shape, got: " + base + " (" + inner + ")");
-                        }
+                        plugin.debug("Failed to read block-entity NBT entry: " + inner);
                     }
                     if (keep) filtered.add(base);
                 }
                 if (filtered.size() != list.size()) {
                     listMod.writeSafely(sectionIndex, filtered);
+                    plugin.debug("Stripped " + (list.size() - filtered.size()) + " obfuscated block-entity entr(y/ies) from section " + sectionIndex);
                 }
             }
         } catch (Exception ex) {
             plugin.debug("stripObfuscatedBlockEntities failed: " + ex);
         }
+    }
+
+    private String tryGetString(NbtCompound nbt, String key) {
+        try {
+            return nbt.getString(key);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    @SafeVarargs
+    private static String firstNonNull(String... values) {
+        for (String v : values) if (v != null) return v;
+        return null;
     }
 
     /** "minecraft:chest" -> Material.CHEST, best-effort. */
