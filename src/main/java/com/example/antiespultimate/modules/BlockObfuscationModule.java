@@ -63,6 +63,16 @@ public class BlockObfuscationModule extends PacketAdapter {
 
     private BukkitTask revealTask;
 
+    // Diagnostic counter: how many MAP_CHUNK packets this listener has actually
+    // processed since the module started. Exposed via /antiespu status so we
+    // can tell instantly whether the packet listener is firing at all, without
+    // needing to catch a debug line in the console at the right moment.
+    private final java.util.concurrent.atomic.AtomicLong packetsProcessed = new java.util.concurrent.atomic.AtomicLong();
+
+    public long getPacketsProcessed() {
+        return packetsProcessed.get();
+    }
+
     public BlockObfuscationModule(AntiESPUltimate plugin, ProtocolManager protocolManager) {
         super(plugin, ListenerPriority.NORMAL, PacketType.Play.Server.MAP_CHUNK);
         this.plugin = plugin;
@@ -100,6 +110,7 @@ public class BlockObfuscationModule extends PacketAdapter {
 
     @Override
     public void onPacketSending(PacketEvent event) {
+        packetsProcessed.incrementAndGet();
         Player receiver = event.getPlayer();
         if (receiver.hasPermission("antiespu.bypass")) return;
 
