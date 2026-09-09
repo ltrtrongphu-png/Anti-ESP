@@ -46,9 +46,10 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("  Block-entities scanned: " + mod.getBlockEntitiesScanned()
                             + "  |  stripped: " + mod.getBlockEntitiesStripped()
                             + "  |  NBT read failures: " + mod.getNbtReadFailures());
-                    sender.sendMessage(ChatColor.GRAY + "  (packets=0 -> listener never fires. scanned=0 -> getListNbtModifier()"
-                            + " returns no block-entity data on this version. scanned>0 but stripped=0 -> id field name mismatch,"
-                            + " check debug log for 'Block-entity NBT sample'.)");
+                    sender.sendMessage(ChatColor.GRAY + "  (packets=0 -> listener never fires. scanned=0 -> reflection couldn't"
+                            + " locate the BlockEntityInfo list on this packet (check console for 'could not locate a"
+                            + " BlockEntityInfo list' with debug:true). scanned>0 but stripped=0 -> the real block at that"
+                            + " position isn't in your obfuscated-blocks list, or coordinate math is off.)");
                 } else {
                     sender.sendMessage(ChatColor.RED + "  Module is not running (check earlier console errors).");
                 }
