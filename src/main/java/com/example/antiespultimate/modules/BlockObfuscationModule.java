@@ -73,6 +73,21 @@ public class BlockObfuscationModule extends PacketAdapter {
     private final java.util.concurrent.atomic.AtomicLong nbtReadFailures = new java.util.concurrent.atomic.AtomicLong();
     private final java.util.concurrent.atomic.AtomicLong reflectionFieldAccessFailures = new java.util.concurrent.atomic.AtomicLong();
 
+    // Stored diagnostic strings, exposed via /antiespu status -- console
+    // logging has proven unreliable to observe (build mismatches, timing,
+    // possibly filtered by another plugin), so we keep the most useful
+    // findings as plain plugin state that a command can always read back.
+    private volatile String lastHandleClassName = "(none seen yet)";
+    private volatile String lastTopLevelFields = "(none seen yet)";
+
+    public String getLastHandleClassName() {
+        return lastHandleClassName;
+    }
+
+    public String getLastTopLevelFields() {
+        return lastTopLevelFields;
+    }
+
     public long getReflectionFieldAccessFailures() {
         return reflectionFieldAccessFailures.get();
     }
@@ -265,8 +280,8 @@ public class BlockObfuscationModule extends PacketAdapter {
     private List<Object> findBlockEntityInfoList(Object root, int depth, Set<Object> visited) {
         if (root == null || depth > 3 || !visited.add(root)) return null;
 
-        if (depth == 0 && plugin.isDebug()) {
-            plugin.debug("findBlockEntityInfoList: root class = " + root.getClass().getName());
+        if (depth == 0) {
+            lastHandleClassName = root.getClass().getName();
         }
 
         List<Field> fields = allDeclaredFields(root.getClass());
@@ -293,13 +308,12 @@ public class BlockObfuscationModule extends PacketAdapter {
             }
         }
 
-        if (depth == 0 && plugin.isDebug()) {
+        if (depth == 0) {
             StringBuilder sb = new StringBuilder();
             for (Field f : fields) {
                 sb.append(f.getName()).append(":").append(f.getType().getSimpleName()).append(", ");
             }
-            plugin.debug("findBlockEntityInfoList: top-level fields on " + root.getClass().getSimpleName()
-                    + " = " + sb);
+            lastTopLevelFields = sb.toString();
         }
 
         // Pass 2: recurse into plausible nested objects (skip primitives,
