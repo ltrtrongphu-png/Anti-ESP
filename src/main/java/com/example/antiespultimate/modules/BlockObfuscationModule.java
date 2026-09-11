@@ -79,6 +79,10 @@ public class BlockObfuscationModule extends PacketAdapter {
     // findings as plain plugin state that a command can always read back.
     private volatile String lastHandleClassName = "(none seen yet)";
     private volatile String lastTopLevelFields = "(none seen yet)";
+    private volatile String lastOuterError = "(none)";
+    private final java.util.concurrent.atomic.AtomicLong coordsNullCount = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong handleNullCount = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong outerExceptionCount = new java.util.concurrent.atomic.AtomicLong();
 
     public String getLastHandleClassName() {
         return lastHandleClassName;
@@ -86,6 +90,22 @@ public class BlockObfuscationModule extends PacketAdapter {
 
     public String getLastTopLevelFields() {
         return lastTopLevelFields;
+    }
+
+    public String getLastOuterError() {
+        return lastOuterError;
+    }
+
+    public long getCoordsNullCount() {
+        return coordsNullCount.get();
+    }
+
+    public long getHandleNullCount() {
+        return handleNullCount.get();
+    }
+
+    public long getOuterExceptionCount() {
+        return outerExceptionCount.get();
     }
 
     public long getReflectionFieldAccessFailures() {
@@ -224,15 +244,21 @@ public class BlockObfuscationModule extends PacketAdapter {
         try {
             com.comphenix.protocol.wrappers.ChunkCoordIntPair coords =
                     packet.getChunkCoordIntPairs().readSafely(0);
-            if (coords == null) return;
+            if (coords == null) {
+                coordsNullCount.incrementAndGet();
+                return;
+            }
             int chunkX = coords.getChunkX();
             int chunkZ = coords.getChunkZ();
             World world = receiver.getWorld();
 
             Object handle = packet.getHandle();
+            if (handle == null) {
+                handleNullCount.incrementAndGet();
+                return;
+            }
             List<Object> blockEntities = findBlockEntityInfoList(handle, 0, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
             if (blockEntities == null) {
-                plugin.debug("stripObfuscatedBlockEntities: could not locate a BlockEntityInfo list on this packet's NMS handle.");
                 return;
             }
 
@@ -266,6 +292,8 @@ public class BlockObfuscationModule extends PacketAdapter {
                 blockEntities.addAll(filtered);
             }
         } catch (Exception ex) {
+            outerExceptionCount.incrementAndGet();
+            lastOuterError = ex.getClass().getSimpleName() + ": " + ex.getMessage();
             plugin.debug("stripObfuscatedBlockEntities failed: " + ex);
         }
     }
