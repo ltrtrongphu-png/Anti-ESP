@@ -37,7 +37,7 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(color(plugin.getConfig().getString("messages.reloaded")));
                 return true;
             case "status":
-                sender.sendMessage(ChatColor.GOLD + "=== AntiESPUltimate === " + ChatColor.YELLOW + "[build-marker: reflection-v3]");
+                sender.sendMessage(ChatColor.GOLD + "=== AntiESPUltimate === " + ChatColor.YELLOW + "[build-marker: reflection-v4]");
                 sender.sendMessage("Debug: " + plugin.isDebug());
                 sender.sendMessage("Block obfuscation: " + plugin.getConfig().getBoolean("block-obfuscation.enabled"));
                 if (plugin.getBlockObfuscationModule() != null) {
@@ -47,6 +47,8 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                             + "  |  stripped: " + mod.getBlockEntitiesStripped()
                             + "  |  NBT read failures: " + mod.getNbtReadFailures()
                             + "  |  reflection field-access failures: " + mod.getReflectionFieldAccessFailures());
+                    sender.sendMessage(ChatColor.AQUA + "  Last packet handle class: " + ChatColor.WHITE + mod.getLastHandleClassName());
+                    sender.sendMessage(ChatColor.AQUA + "  Its top-level fields: " + ChatColor.WHITE + mod.getLastTopLevelFields());
                     sender.sendMessage(ChatColor.GRAY + "  (packets=0 -> listener never fires. scanned=0 -> reflection couldn't"
                             + " locate the BlockEntityInfo list on this packet (check console for 'could not locate a"
                             + " BlockEntityInfo list' with debug:true). scanned>0 but stripped=0 -> the real block at that"
