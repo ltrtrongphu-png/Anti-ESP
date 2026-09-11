@@ -37,7 +37,7 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(color(plugin.getConfig().getString("messages.reloaded")));
                 return true;
             case "status":
-                sender.sendMessage(ChatColor.GOLD + "=== AntiESPUltimate ===");
+                sender.sendMessage(ChatColor.GOLD + "=== AntiESPUltimate === " + ChatColor.YELLOW + "[build-marker: reflection-v2]");
                 sender.sendMessage("Debug: " + plugin.isDebug());
                 sender.sendMessage("Block obfuscation: " + plugin.getConfig().getBoolean("block-obfuscation.enabled"));
                 if (plugin.getBlockObfuscationModule() != null) {
