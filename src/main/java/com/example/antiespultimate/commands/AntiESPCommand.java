@@ -37,7 +37,7 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(color(plugin.getConfig().getString("messages.reloaded")));
                 return true;
             case "status":
-                sender.sendMessage(ChatColor.GOLD + "=== AntiESPUltimate === " + ChatColor.YELLOW + "[build-marker: reflection-v2]");
+                sender.sendMessage(ChatColor.GOLD + "=== AntiESPUltimate === " + ChatColor.YELLOW + "[build-marker: reflection-v3]");
                 sender.sendMessage("Debug: " + plugin.isDebug());
                 sender.sendMessage("Block obfuscation: " + plugin.getConfig().getBoolean("block-obfuscation.enabled"));
                 if (plugin.getBlockObfuscationModule() != null) {
@@ -45,7 +45,8 @@ public class AntiESPCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("  MAP_CHUNK packets processed: " + mod.getPacketsProcessed());
                     sender.sendMessage("  Block-entities scanned: " + mod.getBlockEntitiesScanned()
                             + "  |  stripped: " + mod.getBlockEntitiesStripped()
-                            + "  |  NBT read failures: " + mod.getNbtReadFailures());
+                            + "  |  NBT read failures: " + mod.getNbtReadFailures()
+                            + "  |  reflection field-access failures: " + mod.getReflectionFieldAccessFailures());
                     sender.sendMessage(ChatColor.GRAY + "  (packets=0 -> listener never fires. scanned=0 -> reflection couldn't"
                             + " locate the BlockEntityInfo list on this packet (check console for 'could not locate a"
                             + " BlockEntityInfo list' with debug:true). scanned>0 but stripped=0 -> the real block at that"
