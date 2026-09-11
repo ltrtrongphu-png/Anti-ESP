@@ -71,6 +71,11 @@ public class BlockObfuscationModule extends PacketAdapter {
     private final java.util.concurrent.atomic.AtomicLong blockEntitiesScanned = new java.util.concurrent.atomic.AtomicLong();
     private final java.util.concurrent.atomic.AtomicLong blockEntitiesStripped = new java.util.concurrent.atomic.AtomicLong();
     private final java.util.concurrent.atomic.AtomicLong nbtReadFailures = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong reflectionFieldAccessFailures = new java.util.concurrent.atomic.AtomicLong();
+
+    public long getReflectionFieldAccessFailures() {
+        return reflectionFieldAccessFailures.get();
+    }
 
     public long getPacketsProcessed() {
         return packetsProcessed.get();
@@ -260,6 +265,10 @@ public class BlockObfuscationModule extends PacketAdapter {
     private List<Object> findBlockEntityInfoList(Object root, int depth, Set<Object> visited) {
         if (root == null || depth > 3 || !visited.add(root)) return null;
 
+        if (depth == 0 && plugin.isDebug()) {
+            plugin.debug("findBlockEntityInfoList: root class = " + root.getClass().getName());
+        }
+
         List<Field> fields = allDeclaredFields(root.getClass());
 
         // Pass 1: does this object directly hold the list we want?
@@ -269,6 +278,11 @@ public class BlockObfuscationModule extends PacketAdapter {
             try {
                 val = f.get(root);
             } catch (Exception ex) {
+                reflectionFieldAccessFailures.incrementAndGet();
+                if (plugin.isDebug() && reflectionFieldAccessFailures.get() <= 3) {
+                    plugin.debug("Reflection field access failed on " + root.getClass().getSimpleName()
+                            + "." + f.getName() + ": " + ex);
+                }
                 continue;
             }
             if (val instanceof List<?> list && !list.isEmpty()) {
@@ -277,6 +291,15 @@ public class BlockObfuscationModule extends PacketAdapter {
                     return (List<Object>) list;
                 }
             }
+        }
+
+        if (depth == 0 && plugin.isDebug()) {
+            StringBuilder sb = new StringBuilder();
+            for (Field f : fields) {
+                sb.append(f.getName()).append(":").append(f.getType().getSimpleName()).append(", ");
+            }
+            plugin.debug("findBlockEntityInfoList: top-level fields on " + root.getClass().getSimpleName()
+                    + " = " + sb);
         }
 
         // Pass 2: recurse into plausible nested objects (skip primitives,
